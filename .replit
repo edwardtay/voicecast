@@ -10,3 +10,7 @@ PATH = "/home/runner/$REPL_SLUG/node_modules/.bin:$PATH"
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "npm run build && npm start"]
+build = ["sh", "-c", "npm install"]
