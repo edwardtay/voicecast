@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+:root {
+  --bg-deep: #FAFAF8;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F3F3F0;
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-warm: rgba(0, 0, 0, 0.1);
+  --amber: #E8890C;
+  --amber-dim: #92400E;
+  --amber-glow: rgba(232, 137, 12, 0.07);
+  --teal: #0D9488;
+  --teal-dim: #115E59;
+  --teal-glow: rgba(13, 148, 136, 0.06);
+  --text-primary: #111111;
+  --text-secondary: #333333;
+  --text-muted: #777777;
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+@theme inline {
+  --color-background: var(--bg-deep);
+  --color-foreground: var(--text-primary);
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body), "Roboto Mono", monospace;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2.5s ease-in-out infinite;
+}
+
+.waveform-bar {
+  animation: waveform 0.6s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+/* Staggered delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.12s; }
+.stagger-3 { animation-delay: 0.19s; }
+.stagger-4 { animation-delay: 0.26s; }
+.stagger-5 { animation-delay: 0.33s; }
+.stagger-6 { animation-delay: 0.4s; }
+
+/* Glass surface — light and clean */
+.glass {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+
+.glass-warm {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+/* Hide scrollbar for horizontal scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom scrollbar for transcript */
+.warm-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+.warm-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.warm-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-warm);
+  border-radius: 999px;
+}

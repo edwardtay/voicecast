@@ -1,0 +1,12 @@
+run = "npm run dev"
+entrypoint = "src/app/page.tsx"
+
+[nix]
+channel = "stable-24_05"
+
+[env]
+PATH = "/home/runner/$REPL_SLUG/node_modules/.bin:$PATH"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
