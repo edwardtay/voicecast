@@ -6,6 +6,22 @@ import {
   type VoiceSegmentTiming,
   type GenerationStep,
 } from "@/lib/types";
+import {
+  Mic,
+  Upload,
+  Play,
+  Pause,
+  Download,
+  Link2,
+  Check,
+  RotateCcw,
+  ArrowRight,
+  Loader2,
+  Globe,
+  X,
+  CircleStop,
+  Sparkles,
+} from "lucide-react";
 
 const SUGGESTED_TOPICS = [
   "Why cats think they own the internet",
@@ -387,15 +403,15 @@ export default function Home() {
       <section className="relative z-10">
         <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16 sm:pt-24 pb-10 sm:pb-14">
           {/* Title */}
-          <div className="animate-fade-up stagger-1 text-center sm:text-left mb-3">
+          <div className="animate-fade-up stagger-1 text-center sm:text-left mb-2">
             <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1] text-[var(--text-primary)]">
               VoiceCast
             </h1>
           </div>
 
           {/* Subtitle */}
-          <p className="animate-fade-up stagger-2 text-center sm:text-left text-[13px] text-[var(--text-muted)] max-w-xs leading-relaxed mb-10 sm:mb-12">
-            Topic in, podcast out. AI-designed voices, full transcript.
+          <p className="animate-fade-up stagger-2 text-center sm:text-left text-[13px] text-[var(--text-muted)] max-w-sm leading-relaxed mb-8 sm:mb-10">
+            Turn any topic or article into a podcast with AI-designed voices.
           </p>
 
           {/* ── Input ── */}
@@ -410,7 +426,7 @@ export default function Home() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !isGenerating) generate();
                     }}
-                    placeholder="Topic — e.g. &quot;The future of remote work&quot;"
+                    placeholder="What's the podcast about?"
                     disabled={isGenerating}
                     className="w-full px-5 py-4 sm:py-3.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40 focus:shadow-[0_0_0_3px_rgba(232,137,12,0.06)] disabled:opacity-40 text-sm sm:text-base transition-all"
                   />
@@ -428,63 +444,34 @@ export default function Home() {
               >
                 {isGenerating ? (
                   <span className="flex items-center justify-center gap-2.5">
-                    <svg
-                      className="animate-spin h-5 w-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <circle
-                        className="opacity-20"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                      />
-                      <path
-                        className="opacity-80"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
+                    <Loader2 className="w-4 h-4 animate-spin" />
                     Generating...
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
+                    <Sparkles className="w-4 h-4" />
                     Generate
-                    <svg
-                      className="w-4 h-4 transition-transform group-hover:translate-x-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M13 7l5 5m0 0l-5 5m5-5H6"
-                      />
-                    </svg>
                   </span>
                 )}
               </button>
               </div>
               {/* URL source — optional */}
               <div className="relative">
+                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                   type="url"
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="Paste a URL to base the podcast on (optional)"
+                  placeholder="Paste an article URL (optional)"
                   disabled={isGenerating}
-                  className="w-full px-5 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40 focus:shadow-[0_0_0_3px_rgba(232,137,12,0.06)] disabled:opacity-40 text-[13px] transition-all"
+                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40 focus:shadow-[0_0_0_3px_rgba(232,137,12,0.06)] disabled:opacity-40 text-[13px] transition-all"
                 />
                 {sourceUrl && (
                   <button
                     onClick={() => setSourceUrl("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   >
-                    clear
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -565,20 +552,23 @@ export default function Home() {
                     ) : cloneStatus === "recording" ? (
                       <button
                         onClick={stopRecording}
-                        className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-red-600 text-white border border-red-600 animate-pulse"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-red-600 text-white border border-red-600 animate-pulse"
                       >
-                        Stop recording
+                        <CircleStop className="w-3.5 h-3.5" />
+                        Stop
                       </button>
                     ) : (
                       <>
                         <button
                           onClick={startRecording}
-                          className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all"
                         >
-                          Record voice
+                          <Mic className="w-3.5 h-3.5" />
+                          Record
                         </button>
-                        <label className="px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all cursor-pointer">
-                          Upload audio
+                        <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all cursor-pointer">
+                          <Upload className="w-3.5 h-3.5" />
+                          Upload
                           <input
                             type="file"
                             accept="audio/*"
@@ -586,7 +576,6 @@ export default function Home() {
                             onChange={handleFileUpload}
                           />
                         </label>
-                        <span className="text-[11px] text-[var(--text-muted)] opacity-60">optional</span>
                       </>
                     )}
                   </div>
@@ -721,8 +710,8 @@ export default function Home() {
       {/* ─────────── ERROR ─────────── */}
       {step === "error" && (
         <section className="relative z-10 max-w-2xl mx-auto px-5 sm:px-8 pb-10 w-full animate-fade-up">
-          <div className="rounded-2xl p-6 text-center border border-red-900/30 bg-red-950/20">
-            <p className="text-red-400/90 mb-4 text-sm">{error}</p>
+          <div className="rounded-2xl p-6 text-center border border-red-200 bg-red-50">
+            <p className="text-red-600 mb-4 text-sm">{error}</p>
             <button
               onClick={() => setStep("idle")}
               className="px-5 py-2.5 rounded-xl glass text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -771,58 +760,22 @@ export default function Home() {
                   {podcastId && (
                     <button
                       onClick={copyLink}
-                      className="p-3 rounded-xl glass hover:border-amber-500/20 transition-all group"
+                      className="p-2.5 rounded-lg glass hover:border-[var(--border-warm)] transition-all group"
                       title={copied ? "Copied!" : "Copy link"}
                     >
                       {copied ? (
-                        <svg
-                          className="w-5 h-5 text-amber-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
+                        <Check className="w-4 h-4 text-amber-500" />
                       ) : (
-                        <svg
-                          className="w-5 h-5 text-[var(--text-muted)] group-hover:text-amber-400 transition-colors"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
+                        <Link2 className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
                       )}
                     </button>
                   )}
                   <button
                     onClick={downloadPodcast}
-                    className="p-3 rounded-xl glass hover:border-amber-500/20 transition-all group"
+                    className="p-2.5 rounded-lg glass hover:border-[var(--border-warm)] transition-all group"
                     title="Download"
                   >
-                    <svg
-                      className="w-5 h-5 text-[var(--text-muted)] group-hover:text-amber-400 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={1.5}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      />
-                    </svg>
+                    <Download className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
                   </button>
                 </div>
               </div>
@@ -838,21 +791,9 @@ export default function Home() {
                   }}
                 >
                   {isPlaying ? (
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                    </svg>
+                    <Pause className="w-5 h-5 text-white" fill="white" />
                   ) : (
-                    <svg
-                      className="w-5 h-5 ml-0.5 text-white"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
+                    <Play className="w-5 h-5 ml-0.5 text-white" fill="white" />
                   )}
                 </button>
 
@@ -926,57 +867,17 @@ export default function Home() {
                   {podcastId && (
                     <button
                       onClick={copyLink}
-                      className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text-muted)] hover:text-amber-400 transition-colors"
+                      className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                     >
-                      {copied ? (
-                        <svg
-                          className="w-3.5 h-3.5 text-amber-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      ) : (
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                          />
-                        </svg>
-                      )}
+                      {copied ? <Check className="w-3.5 h-3.5 text-amber-500" /> : <Link2 className="w-3.5 h-3.5" />}
                       {copied ? "Copied" : "Share"}
                     </button>
                   )}
                   <button
                     onClick={downloadPodcast}
-                    className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text-muted)] hover:text-amber-400 transition-colors"
+                    className="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                   >
-                    <svg
-                      className="w-3.5 h-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                      />
-                    </svg>
+                    <Download className="w-3.5 h-3.5" />
                     Download
                   </button>
                 </div>
@@ -1085,21 +986,9 @@ export default function Home() {
                   window.location.pathname
                 );
               }}
-              className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl glass text-sm text-[var(--text-muted)] hover:text-amber-300 hover:border-amber-500/20 transition-all"
+              className="group inline-flex items-center gap-2 px-6 py-3 rounded-xl glass text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all"
             >
-              <svg
-                className="w-4 h-4 transition-transform group-hover:-rotate-90"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
+              <RotateCcw className="w-4 h-4 transition-transform group-hover:-rotate-90" />
               New Episode
             </button>
           </div>
