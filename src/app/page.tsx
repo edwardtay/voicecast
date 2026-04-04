@@ -106,8 +106,23 @@ export default function Home() {
 
   const startRecording = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      // Request high-quality audio
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100,
+        },
+      });
+
+      // Prefer WAV-compatible format for better clone quality
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=pcm")
+        ? "audio/webm;codecs=pcm"
+        : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm";
+
+      const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -118,18 +133,16 @@ export default function Home() {
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         if (timerRef.current) clearInterval(timerRef.current);
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        // Create preview URL so user can hear their recording
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setClonePreviewUrl(URL.createObjectURL(blob));
         await uploadVoiceClone(blob);
       };
 
-      recorder.start();
+      recorder.start(1000); // Collect data every second for responsive stop
       setIsRecording(true);
       setCloneStatus("recording");
       setRecordingTime(0);
 
-      // Timer
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => t + 1);
       }, 1000);
@@ -143,15 +156,21 @@ export default function Home() {
       }, 30000);
     } catch {
       setCloneStatus("idle");
+      setError("Microphone access denied. Please allow microphone permission.");
+      setStep("error");
     }
   }, []);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
+      if (recordingTime < 5) {
+        // Too short — keep recording
+        return;
+      }
       mediaRecorderRef.current.stop();
       setIsRecording(false);
     }
-  }, []);
+  }, [recordingTime]);
 
   const uploadVoiceClone = useCallback(async (audioBlob: Blob) => {
     setCloneStatus("uploading");
@@ -573,12 +592,37 @@ export default function Home() {
                       <span className="text-[12px] text-[var(--text-secondary)]">Cloning your voice...</span>
                     </div>
                   ) : cloneStatus === "recording" ? (
-                    <div className="space-y-2">
-                      <button onClick={stopRecording} className="w-full flex items-center justify-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[12px] font-medium animate-pulse">
-                        <CircleStop className="w-4 h-4" />
-                        Stop recording — {recordingTime}s
+                    <div className="space-y-2.5">
+                      <button
+                        onClick={stopRecording}
+                        disabled={recordingTime < 5}
+                        className="w-full flex items-center justify-center gap-2 p-3 rounded-lg text-[12px] font-medium transition-all disabled:cursor-not-allowed"
+                        style={{
+                          background: recordingTime < 5 ? "var(--bg-elevated)" : "rgba(220,38,38,0.08)",
+                          border: recordingTime < 5 ? "1px solid var(--border-subtle)" : "1px solid rgba(220,38,38,0.25)",
+                          color: recordingTime < 5 ? "var(--text-secondary)" : "#dc2626",
+                        }}
+                      >
+                        <CircleStop className="w-4 h-4 animate-pulse" />
+                        {recordingTime < 5
+                          ? `Recording... ${recordingTime}s (min 5s)`
+                          : `Stop — ${recordingTime}s recorded`}
                       </button>
-                      <p className="text-[10px] text-[var(--text-muted)]">Speak naturally for 10-30 seconds. Read anything out loud.</p>
+                      <div className="flex items-center gap-[2px] justify-center">
+                        {[0,1,2,3,4,5,6,7].map((j) => (
+                          <div key={j} className="w-[3px] rounded-full waveform-bar" style={{
+                            height: "14px",
+                            background: recordingTime < 5 ? "var(--text-muted)" : "#dc2626",
+                            opacity: 0.4,
+                            animationDelay: `${j * 0.08}s`,
+                          }} />
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] text-center">
+                        {recordingTime < 10
+                          ? "Speak naturally — read anything out loud"
+                          : "Good quality! Stop anytime or continue up to 30s"}
+                      </p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-2">
