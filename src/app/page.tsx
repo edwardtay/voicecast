@@ -15,12 +15,14 @@ import {
   Link2,
   Check,
   RotateCcw,
-  ArrowRight,
   Loader2,
   Globe,
   X,
   CircleStop,
   Sparkles,
+  FileText,
+  AudioWaveform,
+  Headphones,
 } from "lucide-react";
 
 const SUGGESTED_TOPICS = [
@@ -403,22 +405,21 @@ export default function Home() {
     <main className="min-h-screen flex flex-col relative overflow-hidden font-[family-name:var(--font-body)]">
       {/* ─────────── HERO ─────────── */}
       <section className="relative z-10">
-        <div className="max-w-2xl mx-auto px-5 sm:px-8 pt-16 sm:pt-24 pb-10 sm:pb-14">
-          {/* Title */}
-          <div className="animate-fade-up stagger-1 text-center sm:text-left mb-2">
-            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1] text-[var(--text-primary)]">
+        <div className="max-w-3xl mx-auto px-5 sm:px-8 pt-12 sm:pt-20 pb-8 sm:pb-12">
+          {/* Header row */}
+          <div className="animate-fade-up stagger-1 flex items-center justify-between mb-8 sm:mb-12">
+            <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl leading-[1] text-[var(--text-primary)]">
               VoiceCast
             </h1>
+            <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-muted)] hidden sm:block">
+              AI Podcast Generator
+            </span>
           </div>
 
-          {/* Subtitle */}
-          <p className="animate-fade-up stagger-2 text-center sm:text-left text-[13px] text-[var(--text-muted)] max-w-sm leading-relaxed mb-8 sm:mb-10">
-            Turn any topic or article into a podcast with AI-designed voices.
-          </p>
-
-          {/* ── Input ── */}
-          <div className="animate-fade-up stagger-3">
-            <div className="space-y-2">
+          {/* ── Creator Card ── */}
+          <div className="animate-fade-up stagger-2 glass-warm rounded-2xl p-6 sm:p-8 mb-6">
+            {/* Inputs */}
+            <div className="space-y-3 mb-6">
               <div className="relative flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
                   <input
@@ -430,43 +431,42 @@ export default function Home() {
                     }}
                     placeholder="What's the podcast about?"
                     disabled={isGenerating}
-                    className="w-full px-5 py-4 sm:py-3.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40 focus:shadow-[0_0_0_3px_rgba(232,137,12,0.06)] disabled:opacity-40 text-sm sm:text-base transition-all"
+                    className="w-full px-4 py-3 rounded-lg bg-[var(--bg-deep)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-warm)] disabled:opacity-40 text-sm transition-all"
                   />
                 </div>
-              <button
-                onClick={() => generate()}
-                disabled={isGenerating || !topic.trim()}
-                className="group relative px-7 py-4 sm:py-3.5 rounded-xl font-medium text-sm sm:text-base transition-all disabled:opacity-30 disabled:cursor-not-allowed overflow-hidden"
-                style={{
-                  background: isGenerating
-                    ? "var(--bg-elevated)"
-                    : "#111111",
-                  color: isGenerating ? "var(--text-muted)" : "#FFFFFF",
-                }}
-              >
-                {isGenerating ? (
-                  <span className="flex items-center justify-center gap-2.5">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Generating...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Generate
-                  </span>
-                )}
-              </button>
+                <button
+                  onClick={() => generate()}
+                  disabled={isGenerating || !topic.trim()}
+                  className="group relative px-6 py-3 rounded-lg font-medium text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{
+                    background: isGenerating ? "var(--bg-elevated)" : "#111111",
+                    color: isGenerating ? "var(--text-muted)" : "#FFFFFF",
+                  }}
+                >
+                  {isGenerating ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Generate
+                    </span>
+                  )}
+                </button>
               </div>
-              {/* URL source — optional */}
+
+              {/* URL source */}
               <div className="relative">
-                <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
                 <input
                   type="url"
                   value={sourceUrl}
                   onChange={(e) => setSourceUrl(e.target.value)}
-                  placeholder="Paste an article URL (optional)"
+                  placeholder="Paste an article URL to base the podcast on"
                   disabled={isGenerating}
-                  className="w-full pl-10 pr-10 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40 focus:shadow-[0_0_0_3px_rgba(232,137,12,0.06)] disabled:opacity-40 text-[13px] transition-all"
+                  className="w-full pl-9 pr-9 py-2.5 rounded-lg bg-[var(--bg-deep)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-warm)] disabled:opacity-40 text-[13px] transition-all"
                 />
                 {sourceUrl && (
                   <button
@@ -479,131 +479,115 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Controls — tone & length */}
+            {/* Controls grid */}
             {step === "idle" && (
-              <div className="mt-5 space-y-3">
-                {/* Tone */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium w-12 shrink-0">Tone</span>
-                  <div className="flex gap-1.5">
-                    {(["casual", "educational", "debate", "comedy"] as const).map((t) => (
-                      <button
-                        key={t}
-                        onClick={() => setTone(t)}
-                        className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                        style={{
-                          background: tone === t ? "#111111" : "transparent",
-                          color: tone === t ? "#FFFFFF" : "var(--text-muted)",
-                          border: tone === t ? "1px solid #111111" : "1px solid var(--border-subtle)",
-                        }}
-                      >
-                        {t.charAt(0).toUpperCase() + t.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Length */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium w-12 shrink-0">Length</span>
-                  <div className="flex gap-1.5">
-                    {([
-                      { value: "short" as const, label: "Short", sub: "~2 min" },
-                      { value: "medium" as const, label: "Medium", sub: "~5 min" },
-                      { value: "long" as const, label: "Long", sub: "~8 min" },
-                    ]).map((l) => (
-                      <button
-                        key={l.value}
-                        onClick={() => setLength(l.value)}
-                        className="px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all"
-                        style={{
-                          background: length === l.value ? "#111111" : "transparent",
-                          color: length === l.value ? "#FFFFFF" : "var(--text-muted)",
-                          border: length === l.value ? "1px solid #111111" : "1px solid var(--border-subtle)",
-                        }}
-                      >
-                        {l.label} <span className="opacity-50">{l.sub}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Voice clone */}
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium w-12 shrink-0">Voice</span>
-                  <div className="flex items-center gap-2">
-                    {cloneStatus === "done" && cloneVoiceId ? (
-                      <div className="flex items-center gap-2">
-                        <span className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-[#111] text-white border border-[#111]">
-                          Voice cloned
-                        </span>
-                        <input
-                          type="text"
-                          value={cloneName}
-                          onChange={(e) => setCloneName(e.target.value)}
-                          placeholder="Your name"
-                          className="w-28 px-3 py-1.5 rounded-lg text-[12px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40"
-                        />
+              <div className="space-y-4 pt-4 border-t border-[var(--border-subtle)]">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Tone */}
+                  <div>
+                    <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium mb-2 block">Tone</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(["casual", "educational", "debate", "comedy"] as const).map((t) => (
                         <button
-                          onClick={() => {
-                            setCloneVoiceId(null);
-                            setCloneStatus("idle");
-                            setCloneName("");
+                          key={t}
+                          onClick={() => setTone(t)}
+                          className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                          style={{
+                            background: tone === t ? "#111111" : "var(--bg-deep)",
+                            color: tone === t ? "#FFFFFF" : "var(--text-secondary)",
+                            border: tone === t ? "1px solid #111111" : "1px solid var(--border-subtle)",
                           }}
-                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         >
-                          <X className="w-3.5 h-3.5" />
+                          {t.charAt(0).toUpperCase() + t.slice(1)}
                         </button>
-                      </div>
-                    ) : cloneStatus === "uploading" ? (
-                      <span className="px-3 py-1.5 rounded-lg text-[12px] text-[var(--text-muted)] border border-[var(--border-subtle)]">
-                        Cloning voice...
-                      </span>
-                    ) : cloneStatus === "recording" ? (
-                      <button
-                        onClick={stopRecording}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-red-600 text-white border border-red-600 animate-pulse"
-                      >
-                        <CircleStop className="w-3.5 h-3.5" />
-                        Stop
-                      </button>
-                    ) : (
-                      <>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Length */}
+                  <div>
+                    <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium mb-2 block">Length</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {([
+                        { value: "short" as const, label: "Short" },
+                        { value: "medium" as const, label: "Medium" },
+                        { value: "long" as const, label: "Long" },
+                      ]).map((l) => (
                         <button
-                          onClick={startRecording}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all"
+                          key={l.value}
+                          onClick={() => setLength(l.value)}
+                          className="px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all"
+                          style={{
+                            background: length === l.value ? "#111111" : "var(--bg-deep)",
+                            color: length === l.value ? "#FFFFFF" : "var(--text-secondary)",
+                            border: length === l.value ? "1px solid #111111" : "1px solid var(--border-subtle)",
+                          }}
                         >
-                          <Mic className="w-3.5 h-3.5" />
-                          Record
+                          {l.label}
                         </button>
-                        <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-primary)] hover:border-[var(--border-warm)] transition-all cursor-pointer">
-                          <Upload className="w-3.5 h-3.5" />
-                          Upload
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Voice */}
+                  <div>
+                    <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium mb-2 block">Your Voice</span>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {cloneStatus === "done" && cloneVoiceId ? (
+                        <>
                           <input
-                            type="file"
-                            accept="audio/*"
-                            className="hidden"
-                            onChange={handleFileUpload}
+                            type="text"
+                            value={cloneName}
+                            onChange={(e) => setCloneName(e.target.value)}
+                            placeholder="Your name"
+                            className="w-24 px-2.5 py-1.5 rounded-md text-[11px] border border-[var(--border-subtle)] bg-[var(--bg-deep)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-warm)]"
                           />
-                        </label>
-                      </>
-                    )}
+                          <span className="text-[11px] text-green-600 font-medium">Cloned</span>
+                          <button
+                            onClick={() => { setCloneVoiceId(null); setCloneStatus("idle"); setCloneName(""); }}
+                            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : cloneStatus === "uploading" ? (
+                        <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Cloning...
+                        </span>
+                      ) : cloneStatus === "recording" ? (
+                        <button
+                          onClick={stopRecording}
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-red-600 text-white animate-pulse"
+                        >
+                          <CircleStop className="w-3 h-3" /> Stop
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={startRecording}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--border-warm)] transition-all"
+                          >
+                            <Mic className="w-3 h-3" /> Record
+                          </button>
+                          <label className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[11px] font-medium text-[var(--text-secondary)] bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--border-warm)] transition-all cursor-pointer">
+                            <Upload className="w-3 h-3" /> Upload
+                            <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+                          </label>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Suggested topics */}
-                <div className="-mx-5 sm:mx-0 px-5 sm:px-0 pt-2">
-                  <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium mb-2 block">Try a topic</span>
-                  <div className="flex sm:flex-wrap gap-2 overflow-x-auto no-scrollbar pb-2 sm:pb-0">
-                    {SUGGESTED_TOPICS.map((t, i) => (
+                <div className="pt-3 border-t border-[var(--border-subtle)]">
+                  <div className="flex sm:flex-wrap gap-2 overflow-x-auto no-scrollbar pb-1">
+                    <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--text-muted)] font-medium shrink-0 self-center mr-1">Try</span>
+                    {SUGGESTED_TOPICS.map((t) => (
                       <button
                         key={t}
                         onClick={() => generate(t)}
-                        className="shrink-0 px-3 py-1.5 rounded-lg text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all"
-                        style={{
-                          border: "1px solid var(--border-subtle)",
-                          animationDelay: `${0.3 + i * 0.05}s`,
-                        }}
+                        className="shrink-0 px-2.5 py-1 rounded-md text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] bg-[var(--bg-deep)] border border-[var(--border-subtle)] hover:border-[var(--border-warm)] transition-all"
                       >
                         {t}
                       </button>
@@ -613,6 +597,25 @@ export default function Home() {
               </div>
             )}
           </div>
+
+          {/* How it works — only show on idle */}
+          {step === "idle" && (
+            <div className="animate-fade-up stagger-3 grid grid-cols-3 gap-4 sm:gap-6">
+              {[
+                { icon: FileText, title: "AI Script", desc: "Writes a natural two-host conversation from your topic" },
+                { icon: AudioWaveform, title: "Voice Design", desc: "Creates unique AI voices or clones yours" },
+                { icon: Headphones, title: "Full Podcast", desc: "Generates audio with synced transcript & download" },
+              ].map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="text-center">
+                  <div className="w-10 h-10 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border-subtle)] flex items-center justify-center mx-auto mb-3">
+                    <Icon className="w-4 h-4 text-[var(--text-secondary)]" />
+                  </div>
+                  <p className="text-[12px] font-semibold text-[var(--text-primary)] mb-1">{title}</p>
+                  <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">{desc}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
