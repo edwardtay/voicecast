@@ -390,11 +390,8 @@ export async function POST(request: Request) {
           voiceSegments,
         });
 
-        // Cleanup: delete designed voices to avoid hitting the 30-voice limit
-        // Don't delete cloned voices (user might reuse them)
-        const voicesToDelete: string[] = [];
-        if (!cloneVoiceId) voicesToDelete.push(voiceIdA); // only delete if AI-designed
-        voicesToDelete.push(voiceIdB); // always AI-designed
+        // Cleanup: delete all voices created this session to avoid 30-voice limit
+        const voicesToDelete = [voiceIdA, voiceIdB];
         for (const vid of voicesToDelete) {
           try { await elevenlabs.voices.delete(vid); } catch {}
         }
