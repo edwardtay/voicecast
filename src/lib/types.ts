@@ -21,6 +21,7 @@ export interface VoiceSegmentTiming {
 export type GenerationStep =
   | "idle"
   | "script"
+  | "review"
   | "voices"
   | "audio"
   | "done"

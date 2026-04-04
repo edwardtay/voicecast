@@ -175,33 +175,48 @@ export async function POST(request: Request) {
       };
 
       try {
-        const { topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language } =
-          (await request.json()) as {
-            topic: string;
-            tone?: string;
-            length?: string;
-            sourceUrl?: string;
-            cloneVoiceId?: string;
-            cloneName?: string;
-            language?: string;
-          };
-        if (!topic?.trim()) {
-          send({ step: "error", error: "Topic is required" });
+        const body = (await request.json()) as {
+          mode?: "script" | "audio";
+          topic?: string;
+          tone?: string;
+          length?: string;
+          sourceUrl?: string;
+          cloneVoiceId?: string;
+          cloneName?: string;
+          language?: string;
+          script?: PodcastScript;
+        };
+
+        const { mode = "script", topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language } = body;
+
+        // ── PHASE 1: Generate script only ──
+        if (mode === "script") {
+          if (!topic?.trim()) {
+            send({ step: "error", error: "Topic is required" });
+            controller.close();
+            return;
+          }
+
+          let sourceContent: string | undefined;
+          if (sourceUrl) {
+            send({ step: "script", message: "Reading source article..." });
+            sourceContent = await fetchUrlContent(sourceUrl);
+          }
+
+          send({ step: "script", message: "Writing your podcast script..." });
+          const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined, language);
+          send({ step: "script_done", script });
           controller.close();
           return;
         }
 
-        // Step 0: Fetch source URL content if provided
-        let sourceContent: string | undefined;
-        if (sourceUrl) {
-          send({ step: "script", message: "Reading source article..." });
-          sourceContent = await fetchUrlContent(sourceUrl);
+        // ── PHASE 2: Generate audio from (edited) script ──
+        const script = body.script;
+        if (!script) {
+          send({ step: "error", error: "Script is required" });
+          controller.close();
+          return;
         }
-
-        // Step 1: Generate script with Gemini
-        send({ step: "script", message: "Writing your podcast script..." });
-        const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined, language);
-        send({ step: "script_done", script });
 
         // Step 2: Design voices (use clone for Host A if provided)
         send({

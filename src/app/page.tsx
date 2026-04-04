@@ -212,6 +212,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode: "script",
           topic: finalTopic,
           tone,
           length,
@@ -249,12 +250,67 @@ export default function Home() {
               break;
             case "script_done":
               setScript(data.script);
+              setStep("review");
+              setStatusMessage("");
               break;
+            case "error":
+              setStep("error");
+              setError(data.error);
+              break;
+          }
+        }
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setStep("error");
+      setError(err instanceof Error ? err.message : "Generation failed");
+    }
+  }, [topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language]);
+
+  const generateAudio = useCallback(async () => {
+    if (!script) return;
+
+    setStep("voices");
+    setStatusMessage("Designing voices...");
+    abortRef.current = new AbortController();
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "audio",
+          script,
+          cloneVoiceId: cloneVoiceId || undefined,
+          cloneName: cloneName.trim() || undefined,
+          language,
+        }),
+        signal: abortRef.current.signal,
+      });
+
+      if (!response.body) throw new Error("No response body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          let data;
+          try { data = JSON.parse(line.slice(6)); } catch { continue; }
+
+          switch (data.step) {
             case "voices":
               setStep("voices");
               setStatusMessage(data.message);
-              break;
-            case "voices_done":
               break;
             case "audio":
               setStep("audio");
@@ -293,9 +349,9 @@ export default function Home() {
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") return;
       setStep("error");
-      setError(err instanceof Error ? err.message : "Generation failed");
+      setError(err instanceof Error ? err.message : "Audio generation failed");
     }
-  }, [topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language]);
+  }, [script, cloneVoiceId, cloneName, language]);
 
   const togglePlayback = useCallback(() => {
     if (isPlaying) {
@@ -411,7 +467,7 @@ export default function Home() {
     }
   }, []);
 
-  const isGenerating = step !== "idle" && step !== "done" && step !== "error";
+  const isGenerating = step !== "idle" && step !== "review" && step !== "done" && step !== "error";
 
   return (
     <main className="min-h-screen flex flex-col relative overflow-hidden font-[family-name:var(--font-body)]">
@@ -723,6 +779,95 @@ export default function Home() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* ─────────── SCRIPT REVIEW / EDIT ─────────── */}
+      {step === "review" && script && (
+        <section className="relative z-10 max-w-2xl mx-auto px-5 sm:px-8 pb-10 w-full animate-fade-up">
+          <div className="glass-warm rounded-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b border-[var(--border-subtle)] flex items-center justify-between">
+              <div>
+                <input
+                  type="text"
+                  value={script.title}
+                  onChange={(e) => setScript({ ...script, title: e.target.value })}
+                  className="font-[family-name:var(--font-display)] text-xl sm:text-2xl text-[var(--text-primary)] bg-transparent focus:outline-none w-full"
+                />
+                <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                  {script.segments.length} segments — edit any line below, then record
+                </p>
+              </div>
+            </div>
+
+            {/* Editable segments */}
+            <div className="p-5 sm:p-6 space-y-3 max-h-[50vh] overflow-y-auto warm-scrollbar">
+              {script.segments.map((seg, i) => {
+                const isHostA = seg.speaker === "host_a";
+                const name = isHostA ? script.hostA.name : script.hostB.name;
+                const color = isHostA ? "var(--amber)" : "var(--teal)";
+                return (
+                  <div key={i} className="flex gap-3 group">
+                    <button
+                      onClick={() => {
+                        const updated = { ...script };
+                        updated.segments = updated.segments.map((s, j) =>
+                          j === i ? { ...s, speaker: s.speaker === "host_a" ? "host_b" as const : "host_a" as const } : s
+                        );
+                        setScript(updated);
+                      }}
+                      className="w-16 shrink-0 text-[12px] font-semibold text-right pt-2.5 hover:opacity-70 transition-opacity cursor-pointer"
+                      style={{ color }}
+                      title="Click to swap speaker"
+                    >
+                      {name}
+                    </button>
+                    <textarea
+                      value={seg.text}
+                      onChange={(e) => {
+                        const updated = { ...script };
+                        updated.segments = updated.segments.map((s, j) =>
+                          j === i ? { ...s, text: e.target.value } : s
+                        );
+                        setScript(updated);
+                      }}
+                      rows={2}
+                      className="flex-1 console-input !py-2 !text-[13px] leading-relaxed resize-none"
+                    />
+                    <button
+                      onClick={() => {
+                        const updated = { ...script };
+                        updated.segments = updated.segments.filter((_, j) => j !== i);
+                        setScript(updated);
+                      }}
+                      className="shrink-0 self-start pt-2.5 text-[var(--text-muted)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Actions */}
+            <div className="p-5 sm:p-6 border-t border-[var(--border-subtle)] flex items-center justify-between gap-3">
+              <button
+                onClick={() => { setStep("idle"); setScript(null); }}
+                className="pill text-[12px]"
+              >
+                Start over
+              </button>
+              <button
+                onClick={generateAudio}
+                className="px-6 py-3 rounded-[var(--radius)] font-medium text-[13px] transition-all flex items-center gap-2"
+                style={{ background: "var(--text-primary)", color: "var(--bg-deep)" }}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Record Audio
+              </button>
+            </div>
           </div>
         </section>
       )}
