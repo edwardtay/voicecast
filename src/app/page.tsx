@@ -62,8 +62,11 @@ export default function Home() {
   const [cloneName, setCloneName] = useState("");
   const [cloneStatus, setCloneStatus] = useState<"idle" | "recording" | "uploading" | "done">("idle");
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [clonePreviewUrl, setClonePreviewUrl] = useState<string>("");
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const playerRef = useRef<HTMLElement>(null);
@@ -116,13 +119,22 @@ export default function Home() {
 
       recorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        if (timerRef.current) clearInterval(timerRef.current);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        // Create preview URL so user can hear their recording
+        setClonePreviewUrl(URL.createObjectURL(blob));
         await uploadVoiceClone(blob);
       };
 
       recorder.start();
       setIsRecording(true);
       setCloneStatus("recording");
+      setRecordingTime(0);
+
+      // Timer
+      timerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
 
       // Auto-stop after 30 seconds
       setTimeout(() => {
@@ -504,39 +516,50 @@ export default function Home() {
                   <div>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium mb-2.5 block">Host Voice</span>
                     {cloneStatus === "done" && cloneVoiceId ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--amber-glow)] border border-[var(--border-active)] text-[12px]">
-                          <Mic className="w-3 h-3 text-[var(--amber)]" />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--bg-input)] border border-green-500/30">
+                          <div className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
                           <input
                             type="text"
                             value={cloneName}
                             onChange={(e) => setCloneName(e.target.value)}
-                            placeholder="Your name"
-                            className="w-20 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[12px] focus:outline-none"
+                            placeholder="Enter your name"
+                            className="flex-1 bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)] text-[12px] focus:outline-none"
                           />
+                          <button onClick={() => { setCloneVoiceId(null); setCloneStatus("idle"); setCloneName(""); setClonePreviewUrl(""); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+                            <X className="w-3 h-3" />
+                          </button>
                         </div>
-                        <button onClick={() => { setCloneVoiceId(null); setCloneStatus("idle"); setCloneName(""); }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
-                          <X className="w-3 h-3" />
-                        </button>
+                        {clonePreviewUrl && (
+                          <audio src={clonePreviewUrl} controls className="w-full h-8 rounded-md" style={{ fontSize: "11px" }} />
+                        )}
+                        <p className="text-[10px] text-green-600">Voice cloned — you{"'"}ll be the main host</p>
                       </div>
                     ) : cloneStatus === "uploading" ? (
-                      <div className="flex items-center gap-2 text-[12px] text-[var(--text-muted)]">
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--bg-input)] border border-[var(--border-subtle)]">
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--amber)]" />
-                        <span>Cloning voice...</span>
+                        <span className="text-[12px] text-[var(--text-secondary)]">Cloning your voice...</span>
                       </div>
                     ) : cloneStatus === "recording" ? (
-                      <button onClick={stopRecording} className="flex items-center gap-1.5 pill bg-red-600/20 border-red-500/40 text-red-400 animate-pulse">
-                        <CircleStop className="w-3 h-3" /> Stop recording
-                      </button>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <button onClick={startRecording} className="pill flex items-center gap-1.5">
-                          <Mic className="w-3 h-3" /> Record
+                      <div className="space-y-2">
+                        <button onClick={stopRecording} className="w-full flex items-center justify-center gap-2 p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-600 text-[12px] font-medium animate-pulse">
+                          <CircleStop className="w-3.5 h-3.5" />
+                          Stop recording — {recordingTime}s
                         </button>
-                        <label className="pill flex items-center gap-1.5 cursor-pointer">
-                          <Upload className="w-3 h-3" /> Upload
-                          <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
-                        </label>
+                        <p className="text-[10px] text-[var(--text-muted)]">Speak naturally for 10-30 seconds</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={startRecording} className="pill flex items-center gap-1.5">
+                            <Mic className="w-3 h-3" /> Record
+                          </button>
+                          <label className="pill flex items-center gap-1.5 cursor-pointer">
+                            <Upload className="w-3 h-3" /> Upload
+                            <input type="file" accept="audio/*" className="hidden" onChange={handleFileUpload} />
+                          </label>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-muted)]">Clone your voice to be the podcast host</p>
                       </div>
                     )}
                   </div>
@@ -682,8 +705,8 @@ export default function Home() {
       {/* ─────────── ERROR ─────────── */}
       {step === "error" && (
         <section className="relative z-10 max-w-2xl mx-auto px-5 sm:px-8 pb-10 w-full animate-fade-up">
-          <div className="rounded-2xl p-6 text-center border border-red-900/30 bg-red-950/20">
-            <p className="text-red-400 mb-4 text-sm">{error}</p>
+          <div className="rounded-2xl p-6 text-center border border-red-200 bg-red-50">
+            <p className="text-red-600 mb-4 text-sm">{error}</p>
             <button
               onClick={() => setStep("idle")}
               className="px-5 py-2.5 rounded-xl glass text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
@@ -758,14 +781,14 @@ export default function Home() {
                   onClick={togglePlayback}
                   className="w-12 h-12 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all shrink-0"
                   style={{
-                    background: "var(--amber)",
-                    boxShadow: "0 0 20px rgba(232, 137, 12, 0.25)",
+                    background: "#111111",
+                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.15)",
                   }}
                 >
                   {isPlaying ? (
-                    <Pause className="w-4 h-4 text-[#0C0C0E]" fill="#0C0C0E" />
+                    <Pause className="w-4 h-4 text-white" fill="white" />
                   ) : (
-                    <Play className="w-4 h-4 ml-0.5 text-[#0C0C0E]" fill="#0C0C0E" />
+                    <Play className="w-4 h-4 ml-0.5 text-white" fill="white" />
                   )}
                 </button>
 
@@ -968,31 +991,15 @@ export default function Home() {
       )}
 
       {/* ─────────── FOOTER ─────────── */}
-      <footer className="relative z-10 mt-auto py-8 sm:py-10 text-center">
-        <div className="flex items-center justify-center gap-3 text-xs text-[var(--text-muted)]">
-          <span>Built for</span>
-          <span className="text-[var(--amber)] font-semibold tracking-wide">
-            #ElevenHacks
-          </span>
-          <span className="opacity-30">/</span>
-          <a
-            href="https://elevenlabs.io"
-            className="hover:text-[var(--amber)] transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            ElevenLabs
-          </a>
-          <span className="opacity-30">+</span>
-          <a
-            href="https://replit.com"
-            className="hover:text-[var(--teal)] transition-colors"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Replit
-          </a>
-        </div>
+      <footer className="relative z-10 mt-auto py-8 sm:py-10 text-center space-y-2">
+        <p className="text-[11px] text-[var(--text-muted)]">
+          Powered by{" "}
+          <a href="https://elevenlabs.io" className="hover:text-[var(--text-secondary)] transition-colors" target="_blank" rel="noopener noreferrer">ElevenLabs</a>
+          {" "}Voice Design, Voice Cloning, Text-to-Dialogue & Sound Effects APIs
+        </p>
+        <p className="text-[10px] text-[var(--text-muted)] opacity-60">
+          AI-generated content. Voices are synthetically designed or cloned with user consent.
+        </p>
       </footer>
     </main>
   );
