@@ -9,7 +9,6 @@ export async function POST(request: Request) {
       return Response.json({ error: "No audio file provided" }, { status: 400 });
     }
 
-    // Validate file size (min 10KB, max 10MB per file)
     for (const file of files) {
       if (file.size < 10_000) {
         return Response.json(
@@ -27,17 +26,41 @@ export async function POST(request: Request) {
 
     const elevenlabs = new ElevenLabsClient();
 
+    // Clone the voice
     const result = await elevenlabs.voices.ivc.create({
       name: `VoiceCast-${Date.now()}`,
       files,
       removeBackgroundNoise: true,
       description: "Voice cloned for VoiceCast podcast",
-      labels: {
-        source: "voicecast",
-      },
+      labels: { source: "voicecast" },
     });
 
-    return Response.json({ voiceId: result.voiceId });
+    // Generate a test phrase with the cloned voice so user can verify quality
+    let previewBase64: string | undefined;
+    try {
+      const previewStream = await elevenlabs.textToSpeech.convert(
+        result.voiceId,
+        {
+          text: "Hey there! This is what I sound like as a podcast host. Pretty cool, right?",
+          modelId: "eleven_multilingual_v2",
+        }
+      );
+      const chunks: Uint8Array[] = [];
+      const reader = (previewStream as ReadableStream<Uint8Array>).getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      previewBase64 = Buffer.concat(chunks).toString("base64");
+    } catch {
+      // Preview failed — clone still succeeded, just no preview
+    }
+
+    return Response.json({
+      voiceId: result.voiceId,
+      previewBase64,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Voice cloning failed";
     return Response.json({ error: message }, { status: 500 });

@@ -184,17 +184,25 @@ export default function Home() {
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Clone failed");
       if (data.voiceId) {
         setCloneVoiceId(data.voiceId);
         setCloneStatus("done");
+        // Use the AI-generated preview (cloned voice speaking) instead of raw recording
+        if (data.previewBase64) {
+          if (clonePreviewUrl) URL.revokeObjectURL(clonePreviewUrl);
+          setClonePreviewUrl(`data:audio/mpeg;base64,${data.previewBase64}`);
+        }
       } else {
-        throw new Error(data.error || "Clone failed");
+        throw new Error("Clone failed — no voice ID returned");
       }
-    } catch {
+    } catch (err) {
       setCloneStatus("idle");
       setCloneVoiceId(null);
+      setError(err instanceof Error ? err.message : "Voice cloning failed");
+      setStep("error");
     }
-  }, []);
+  }, [clonePreviewUrl]);
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -582,14 +590,24 @@ export default function Home() {
                         </button>
                       </div>
                       {clonePreviewUrl && (
-                        <audio src={clonePreviewUrl} controls className="w-full h-8 rounded-md" />
+                        <div>
+                          <p className="text-[10px] text-[var(--text-muted)] mb-1.5">Hear your cloned voice:</p>
+                          <audio src={clonePreviewUrl} controls className="w-full h-8 rounded-md" />
+                        </div>
                       )}
-                      <p className="text-[10px] text-green-600">Cloned successfully — you{"'"}ll host this episode. Co-host gets an AI-designed voice.</p>
+                      <p className="text-[10px] text-green-600">
+                        {clonePreviewUrl
+                          ? "Sound right? You\u2019ll host this episode. Co-host gets an AI voice."
+                          : "Cloned \u2014 you\u2019ll host this episode."}
+                      </p>
                     </div>
                   ) : cloneStatus === "uploading" ? (
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
-                      <Loader2 className="w-4 h-4 animate-spin text-[var(--amber)]" />
-                      <span className="text-[12px] text-[var(--text-secondary)]">Cloning your voice...</span>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
+                        <Loader2 className="w-4 h-4 animate-spin text-[var(--amber)]" />
+                        <span className="text-[12px] text-[var(--text-secondary)]">Cloning voice & generating preview...</span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)]">This takes a few seconds — we{"'"}re creating your AI voice clone and a test sample</p>
                     </div>
                   ) : cloneStatus === "recording" ? (
                     <div className="space-y-2.5">
