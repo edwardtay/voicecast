@@ -58,6 +58,7 @@ export default function Home() {
   const [tone, setTone] = useState<"casual" | "educational" | "debate" | "comedy">("casual");
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [language, setLanguage] = useState("en");
   const [cloneVoiceId, setCloneVoiceId] = useState<string | null>(null);
   const [cloneName, setCloneName] = useState("");
   const [cloneStatus, setCloneStatus] = useState<"idle" | "recording" | "uploading" | "done">("idle");
@@ -220,6 +221,7 @@ export default function Home() {
           sourceUrl: sourceUrl.trim() || undefined,
           cloneVoiceId: cloneVoiceId || undefined,
           cloneName: cloneName.trim() || undefined,
+          language,
         }),
         signal: abortRef.current.signal,
       });
@@ -240,7 +242,8 @@ export default function Home() {
 
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
-          const data = JSON.parse(line.slice(6));
+          let data;
+          try { data = JSON.parse(line.slice(6)); } catch { continue; }
 
           switch (data.step) {
             case "script":
@@ -295,7 +298,7 @@ export default function Home() {
       setStep("error");
       setError(err instanceof Error ? err.message : "Generation failed");
     }
-  }, [topic]);
+  }, [topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language]);
 
   const togglePlayback = useCallback(() => {
     if (isPlaying) {
@@ -487,7 +490,7 @@ export default function Home() {
             {/* Controls — only on idle */}
             {step === "idle" && (
               <div className="border-t border-[var(--border-subtle)] bg-[var(--bg-input)]">
-                <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-4 gap-5">
                   {/* Tone */}
                   <div>
                     <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium mb-2.5 block">Tone</span>
@@ -512,8 +515,38 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Voice Clone */}
+                  {/* Language */}
                   <div>
+                    <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium mb-2.5 block">Language</span>
+                    <select
+                      value={language}
+                      onChange={(e) => setLanguage(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium bg-[var(--bg-input)] border border-[var(--border-subtle)] text-[var(--text-secondary)] focus:outline-none focus:border-[var(--border-active)] cursor-pointer appearance-none"
+                    >
+                      {[
+                        { code: "en", name: "English" },
+                        { code: "ja", name: "Japanese" },
+                        { code: "zh", name: "Chinese" },
+                        { code: "ko", name: "Korean" },
+                        { code: "es", name: "Spanish" },
+                        { code: "fr", name: "French" },
+                        { code: "de", name: "German" },
+                        { code: "pt", name: "Portuguese" },
+                        { code: "it", name: "Italian" },
+                        { code: "hi", name: "Hindi" },
+                        { code: "ar", name: "Arabic" },
+                        { code: "tr", name: "Turkish" },
+                        { code: "pl", name: "Polish" },
+                        { code: "nl", name: "Dutch" },
+                        { code: "sv", name: "Swedish" },
+                      ].map((l) => (
+                        <option key={l.code} value={l.code}>{l.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Voice Clone */}
+                  <div className="sm:col-span-2">
                     <span className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-muted)] font-medium mb-2.5 block">Host Voice</span>
                     {cloneStatus === "done" && cloneVoiceId ? (
                       <div className="space-y-2">

@@ -31,7 +31,8 @@ async function generateScript(
   tone: string = "casual",
   length: string = "medium",
   sourceContent?: string,
-  cloneName?: string
+  cloneName?: string,
+  language: string = "en"
 ): Promise<PodcastScript> {
   const segmentCounts: Record<string, string> = {
     short: "4-5",
@@ -62,6 +63,7 @@ The podcast has two hosts:
 - Host B: The co-host who adds insights, asks questions, and provides counterpoints
 
 Tone: ${toneGuide}
+${language !== "en" ? `\nIMPORTANT: Write ALL dialogue text in the language with ISO code "${language}". Host names can remain English-sounding, but all spoken text in segments MUST be in ${language}.` : ""}
 
 Rules:
 - Write ${exchanges} exchanges total (each exchange is one person speaking)
@@ -173,7 +175,7 @@ export async function POST(request: Request) {
       };
 
       try {
-        const { topic, tone, length, sourceUrl, cloneVoiceId, cloneName } =
+        const { topic, tone, length, sourceUrl, cloneVoiceId, cloneName, language } =
           (await request.json()) as {
             topic: string;
             tone?: string;
@@ -181,6 +183,7 @@ export async function POST(request: Request) {
             sourceUrl?: string;
             cloneVoiceId?: string;
             cloneName?: string;
+            language?: string;
           };
         if (!topic?.trim()) {
           send({ step: "error", error: "Topic is required" });
@@ -197,15 +200,15 @@ export async function POST(request: Request) {
 
         // Step 1: Generate script with Gemini
         send({ step: "script", message: "Writing your podcast script..." });
-        const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined);
+        const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined, language);
         send({ step: "script_done", script });
 
         // Step 2: Design voices (use clone for Host A if provided)
         send({
           step: "voices",
           message: cloneVoiceId
-            ? "Using your cloned voice + designing co-host..."
-            : "Designing unique host voices...",
+            ? `Using your cloned voice for ${script.hostA.name}. Designing ${script.hostB.name}'s voice...`
+            : `Designing voices for ${script.hostA.name} & ${script.hostB.name}...`,
         });
 
         const hostBText = script.segments
@@ -266,6 +269,9 @@ export async function POST(request: Request) {
           voiceId: seg.speaker === "host_a" ? voiceIdA : voiceIdB,
         }));
 
+        // Run SFX generation in parallel with dialogue
+        const sfxPromise = generateIntroSfx(elevenlabs);
+
         // Try textToDialogue with timestamps first (native multi-speaker)
         // Falls back to per-segment TTS if unavailable
         let dialogueAudioBase64: string;
@@ -281,6 +287,7 @@ export async function POST(request: Request) {
           const dialogueResult =
             await elevenlabs.textToDialogue.convertWithTimestamps({
               inputs: dialogueInputs,
+              ...(language && language !== "en" ? { languageCode: language } : {}),
             });
 
           dialogueAudioBase64 = dialogueResult.audioBase64;
@@ -356,8 +363,8 @@ export async function POST(request: Request) {
           });
         }
 
-        // Generate intro SFX in parallel (fire-and-forget style, already started)
-        const introBase64 = await generateIntroSfx(elevenlabs);
+        // Await SFX (was started in parallel with dialogue)
+        const introBase64 = await sfxPromise;
 
         // Done — send everything
         send({
