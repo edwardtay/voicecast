@@ -57,6 +57,7 @@ export default function Home() {
   const [length, setLength] = useState<"short" | "medium" | "long">("medium");
   const [sourceUrl, setSourceUrl] = useState("");
   const [cloneVoiceId, setCloneVoiceId] = useState<string | null>(null);
+  const [cloneName, setCloneName] = useState("");
   const [cloneStatus, setCloneStatus] = useState<"idle" | "recording" | "uploading" | "done">("idle");
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -204,6 +205,7 @@ export default function Home() {
           length,
           sourceUrl: sourceUrl.trim() || undefined,
           cloneVoiceId: cloneVoiceId || undefined,
+          cloneName: cloneName.trim() || undefined,
         }),
         signal: abortRef.current.signal,
       });
@@ -533,16 +535,24 @@ export default function Home() {
                     {cloneStatus === "done" && cloneVoiceId ? (
                       <div className="flex items-center gap-2">
                         <span className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-[#111] text-white border border-[#111]">
-                          Your voice
+                          Voice cloned
                         </span>
+                        <input
+                          type="text"
+                          value={cloneName}
+                          onChange={(e) => setCloneName(e.target.value)}
+                          placeholder="Your name"
+                          className="w-28 px-3 py-1.5 rounded-lg text-[12px] border border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-amber-500/40"
+                        />
                         <button
                           onClick={() => {
                             setCloneVoiceId(null);
                             setCloneStatus("idle");
+                            setCloneName("");
                           }}
-                          className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         >
-                          remove
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ) : cloneStatus === "uploading" ? (

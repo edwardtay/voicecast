@@ -30,7 +30,8 @@ async function generateScript(
   topic: string,
   tone: string = "casual",
   length: string = "medium",
-  sourceContent?: string
+  sourceContent?: string,
+  cloneName?: string
 ): Promise<PodcastScript> {
   const segmentCounts: Record<string, string> = {
     short: "4-5",
@@ -57,7 +58,7 @@ async function generateScript(
             text: `You are a podcast script writer. Create a short, engaging podcast script about: "${topic}"${sourceContent ? `\n\nBase the discussion on this source material:\n"""\n${sourceContent}\n"""` : ""}
 
 The podcast has two hosts:
-- Host A: The main presenter who introduces topics and drives the conversation
+- Host A: The main presenter who introduces topics and drives the conversation${cloneName ? `. Host A's name MUST be "${cloneName}" — this is the user's real name (their voice is cloned), so do NOT generate a voiceDescription for hostA.` : ""}
 - Host B: The co-host who adds insights, asks questions, and provides counterpoints
 
 Tone: ${toneGuide}
@@ -172,13 +173,14 @@ export async function POST(request: Request) {
       };
 
       try {
-        const { topic, tone, length, sourceUrl, cloneVoiceId } =
+        const { topic, tone, length, sourceUrl, cloneVoiceId, cloneName } =
           (await request.json()) as {
             topic: string;
             tone?: string;
             length?: string;
             sourceUrl?: string;
             cloneVoiceId?: string;
+            cloneName?: string;
           };
         if (!topic?.trim()) {
           send({ step: "error", error: "Topic is required" });
@@ -195,7 +197,7 @@ export async function POST(request: Request) {
 
         // Step 1: Generate script with Gemini
         send({ step: "script", message: "Writing your podcast script..." });
-        const script = await generateScript(topic, tone, length, sourceContent);
+        const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined);
         send({ step: "script_done", script });
 
         // Step 2: Design voices (use clone for Host A if provided)
@@ -247,7 +249,7 @@ export async function POST(request: Request) {
 
         send({
           step: "voices_done",
-          voiceA: cloneVoiceId ? "You" : script.hostA.name,
+          voiceA: cloneVoiceId ? (cloneName || "You") : script.hostA.name,
           voiceB: script.hostB.name,
         });
 
