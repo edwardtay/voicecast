@@ -389,6 +389,15 @@ export async function POST(request: Request) {
           dialogueAudioBase64,
           voiceSegments,
         });
+
+        // Cleanup: delete designed voices to avoid hitting the 30-voice limit
+        // Don't delete cloned voices (user might reuse them)
+        const voicesToDelete: string[] = [];
+        if (!cloneVoiceId) voicesToDelete.push(voiceIdA); // only delete if AI-designed
+        voicesToDelete.push(voiceIdB); // always AI-designed
+        for (const vid of voicesToDelete) {
+          try { await elevenlabs.voices.delete(vid); } catch {}
+        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "An error occurred";
