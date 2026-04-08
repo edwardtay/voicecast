@@ -49,12 +49,17 @@ async function generateScript(
   const toneGuide = toneGuides[tone] || toneGuides.casual;
   const genai = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
-  // Fallback chain: 2.5-flash gets overloaded constantly. 2.0-flash and 1.5-flash
-  // are dramatically more available. Try each in order on 503/quota errors.
+  // Fallback chain — verified against ListModels for this API key.
+  // - 2.5-flash: primary (often overloaded)
+  // - flash-latest: Google-managed evergreen alias, always points to a working flash model
+  // - 2.0-flash: stable older workhorse
+  // - 2.5-flash-lite: different infra pool, available when others aren't
+  // (Note: gemini-1.5-flash was removed by Google — do not re-add.)
   const modelFallbacks = [
     "gemini-2.5-flash",
+    "gemini-flash-latest",
     "gemini-2.0-flash",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash-lite",
   ];
 
   const promptText = `You are a podcast script writer. Create a short, engaging podcast script about: "${topic}"${sourceContent ? `\n\nBase the discussion on this source material:\n"""\n${sourceContent}\n"""` : ""}
@@ -107,8 +112,10 @@ Respond in this exact JSON format:
       // Only fall through on overload / quota / unavailable errors.
       // Anything else (auth, malformed request) we re-throw immediately.
       const msg = err instanceof Error ? err.message : String(err);
+      // Retry on transient failures AND on 404/not-found (model renamed/removed
+      // — fall through instead of dying so future Google model churn is harmless).
       const isRetryable =
-        /overloaded|high demand|503|UNAVAILABLE|RESOURCE_EXHAUSTED|429|quota/i.test(
+        /overloaded|high demand|503|UNAVAILABLE|RESOURCE_EXHAUSTED|429|quota|404|not found|NOT_FOUND/i.test(
           msg
         );
       if (!isRetryable) throw err;
