@@ -115,14 +115,20 @@ export default function Home() {
         },
       });
 
-      // Prefer WAV-compatible format for better clone quality
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=pcm")
-        ? "audio/webm;codecs=pcm"
-        : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm";
+      // Prefer opus — it's ~5–10x smaller than PCM-in-WebM (88 KB/s vs 16 KB/s),
+      // which matters because 30s of PCM blows past most proxy body-size caps
+      // (CapRover nginx defaults to 1 MB). Opus at 128 kbps is already
+      // near-transparent for speech, and ElevenLabs IVC handles it fine.
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/webm;codecs=pcm";
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128_000,
+      });
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
@@ -183,8 +189,18 @@ export default function Home() {
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Clone failed");
+      // Read as text first so non-JSON error bodies (e.g. proxy "Request Entity
+      // Too Large") surface a real message instead of "Unexpected token R".
+      const text = await res.text();
+      let data: { voiceId?: string; previewBase64?: string; error?: string } = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(
+          `Server error (${res.status}): ${text.slice(0, 200) || "empty response"}`
+        );
+      }
+      if (!res.ok) throw new Error(data.error || `Clone failed (${res.status})`);
       if (data.voiceId) {
         setCloneVoiceId(data.voiceId);
         setCloneStatus("done");
