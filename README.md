@@ -1,5 +1,7 @@
 # VoiceCast
 
+**Live demo:** https://voicecast.lever-labs.com
+
 AI podcast generator that turns any topic into a full two-host podcast episode with custom-designed voices.
 
 Type a topic, and VoiceCast will write a script, design unique voices for each host, generate the audio, and give you a playable episode with a synced transcript — all in about a minute.
