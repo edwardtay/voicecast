@@ -48,15 +48,16 @@ async function generateScript(
   const exchanges = segmentCounts[length] || "6-8";
   const toneGuide = toneGuides[tone] || toneGuides.casual;
   const genai = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-  const model = genai.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [
-          {
-            text: `You are a podcast script writer. Create a short, engaging podcast script about: "${topic}"${sourceContent ? `\n\nBase the discussion on this source material:\n"""\n${sourceContent}\n"""` : ""}
+  // Fallback chain: 2.5-flash gets overloaded constantly. 2.0-flash and 1.5-flash
+  // are dramatically more available. Try each in order on 503/quota errors.
+  const modelFallbacks = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+  ];
+
+  const promptText = `You are a podcast script writer. Create a short, engaging podcast script about: "${topic}"${sourceContent ? `\n\nBase the discussion on this source material:\n"""\n${sourceContent}\n"""` : ""}
 
 The podcast has two hosts:
 - Host A: The main presenter who introduces topics and drives the conversation${cloneName ? `. Host A's name MUST be "${cloneName}" — this is the user's real name (their voice is cloned), so do NOT generate a voiceDescription for hostA.` : ""}
@@ -89,18 +90,35 @@ Respond in this exact JSON format:
     { "speaker": "host_a", "text": "What the host says" },
     { "speaker": "host_b", "text": "What the co-host says" }
   ]
-}`,
-          },
-        ],
-      },
-    ],
-    generationConfig: {
-      responseMimeType: "application/json",
-    },
-  });
+}`;
 
-  const text = result.response.text();
-  return JSON.parse(text) as PodcastScript;
+  let lastError: unknown;
+  for (const modelName of modelFallbacks) {
+    try {
+      const model = genai.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: promptText }] }],
+        generationConfig: { responseMimeType: "application/json" },
+      });
+      const text = result.response.text();
+      return JSON.parse(text) as PodcastScript;
+    } catch (err) {
+      lastError = err;
+      // Only fall through on overload / quota / unavailable errors.
+      // Anything else (auth, malformed request) we re-throw immediately.
+      const msg = err instanceof Error ? err.message : String(err);
+      const isRetryable =
+        /overloaded|high demand|503|UNAVAILABLE|RESOURCE_EXHAUSTED|429|quota/i.test(
+          msg
+        );
+      if (!isRetryable) throw err;
+      console.warn(`[generateScript] ${modelName} unavailable, falling back. ${msg}`);
+    }
+  }
+
+  throw new Error(
+    `All Gemini models overloaded. Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`
+  );
 }
 
 async function designVoice(
