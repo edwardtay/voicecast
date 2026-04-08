@@ -78,7 +78,7 @@ Rules:
 - End with a natural wrap-up
 - Give each host a distinct personality
 
-Also create unique voice descriptions for each host that would work with a voice design AI. Be creative and specific about tone, pace, age, and style.
+Also create unique voice descriptions for each host that would work with a voice design AI. Be creative and specific about tone, pace, age, and style. IMPORTANT: voiceDescription fields MUST ALWAYS be written in English, even when the dialogue language is not English — the voice design AI is trained primarily on English descriptions and produces unpredictable results otherwise.
 
 Respond in this exact JSON format:
 {
@@ -394,6 +394,9 @@ export async function POST(request: Request) {
                     text: segment.text,
                     modelId: "eleven_multilingual_v2",
                     outputFormat: "mp3_44100_128",
+                    ...(language && language !== "en"
+                      ? { languageCode: language }
+                      : {}),
                   }
                 );
                 return collectStream(
