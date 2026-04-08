@@ -187,6 +187,38 @@ async function collectStream(
   return Buffer.concat(chunks).toString("base64");
 }
 
+/**
+ * Best-effort sweep of orphaned VoiceCast-* voices in the shared ElevenLabs
+ * account. Both clone-voice and designVoice routes name voices
+ * `VoiceCast-${Date.now()}`, so we parse the timestamp from the name and
+ * delete anything older than maxAgeMs. This catches:
+ *   - voices left behind by failed/aborted prior runs
+ *   - cloned voices from users who recorded but never generated
+ * Fire-and-forget — all errors swallowed, never blocks the request.
+ */
+async function sweepOrphanedVoices(
+  elevenlabs: ElevenLabsClient,
+  maxAgeMs = 15 * 60 * 1000
+): Promise<void> {
+  try {
+    const { voices } = await elevenlabs.voices.getAll();
+    const cutoff = Date.now() - maxAgeMs;
+    const orphans = voices.filter((v) => {
+      const match = v.name?.match(/^VoiceCast-(\d+)$/);
+      if (!match) return false;
+      const createdAt = Number(match[1]);
+      return Number.isFinite(createdAt) && createdAt < cutoff;
+    });
+    if (orphans.length === 0) return;
+    console.log(`[sweep] purging ${orphans.length} orphaned voice(s)`);
+    await Promise.all(
+      orphans.map((v) => elevenlabs.voices.delete(v.voiceId).catch(() => {}))
+    );
+  } catch {
+    // Sweep is best-effort. If it fails, generation continues.
+  }
+}
+
 export async function POST(request: Request) {
   const elevenlabs = new ElevenLabsClient();
 
@@ -198,6 +230,11 @@ export async function POST(request: Request) {
           encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
         );
       };
+
+      // Hoisted so the finally block can clean up even if generation throws.
+      // Empty string = unassigned (script-only mode never creates voices).
+      let voiceIdA = "";
+      let voiceIdB = "";
 
       try {
         const body = (await request.json()) as {
@@ -218,7 +255,6 @@ export async function POST(request: Request) {
         if (mode === "script") {
           if (!topic?.trim()) {
             send({ step: "error", error: "Topic is required" });
-            controller.close();
             return;
           }
 
@@ -231,7 +267,6 @@ export async function POST(request: Request) {
           send({ step: "script", message: "Writing your podcast script..." });
           const script = await generateScript(topic, tone, length, sourceContent, cloneVoiceId ? cloneName : undefined, language);
           send({ step: "script_done", script });
-          controller.close();
           return;
         }
 
@@ -239,9 +274,12 @@ export async function POST(request: Request) {
         const script = body.script;
         if (!script) {
           send({ step: "error", error: "Script is required" });
-          controller.close();
           return;
         }
+
+        // Fire-and-forget sweep of orphaned voices from prior runs.
+        // Runs in parallel with voice design — never blocks the request.
+        void sweepOrphanedVoices(elevenlabs);
 
         // Step 2: Design voices (use clone for Host A if provided)
         send({
@@ -256,9 +294,6 @@ export async function POST(request: Request) {
           .map((s) => s.text)
           .join(" ")
           .slice(0, 500);
-
-        let voiceIdA: string;
-        let voiceIdB: string;
 
         if (cloneVoiceId) {
           // Host A = cloned voice, only design Host B
@@ -415,17 +450,19 @@ export async function POST(request: Request) {
           voiceSegments,
         });
 
-        // Cleanup: delete all voices created this session to avoid 30-voice limit
-        const voicesToDelete = [voiceIdA, voiceIdB];
-        for (const vid of voicesToDelete) {
-          try { await elevenlabs.voices.delete(vid); } catch {}
-        }
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "An error occurred";
         send({ step: "error", error: message });
       } finally {
-        controller.close();
+        // Always purge voices created this request — even if generation
+        // failed midway. Deduped because cloneVoiceId == voiceIdA when
+        // a clone is in use, and we don't want to double-delete.
+        const toDelete = Array.from(new Set([voiceIdA, voiceIdB].filter(Boolean)));
+        for (const vid of toDelete) {
+          try { await elevenlabs.voices.delete(vid); } catch {}
+        }
+        try { controller.close(); } catch {}
       }
     },
   });
